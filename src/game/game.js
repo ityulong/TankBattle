@@ -343,7 +343,8 @@ export class Game {
     this.stageIntroTimer = 2.5;
     this.hud.stage.textContent = formatStage(this.levelIndex + 1);
     this.player.reset(getPlayerSpawnPosition());
-    setTimeout(() => this.audio.playTheme('battle', { loop: true }), 2000);
+    const battleTheme = this.audio.getBattleThemeNameForLevel(this.levelIndex);
+    setTimeout(() => this.audio.playTheme(battleTheme, { loop: true }), 2000);
   }
 
   resetStageRuntime() {

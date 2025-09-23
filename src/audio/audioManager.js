@@ -1,33 +1,50 @@
-const NOTE_FREQUENCIES = {
-  C3: 130.81,
-  D3: 146.83,
-  E3: 164.81,
-  F3: 174.61,
-  G3: 196.0,
-  A3: 220.0,
-  B3: 246.94,
-  C4: 261.63,
-  D4: 293.66,
-  E4: 329.63,
-  F4: 349.23,
-  G4: 392.0,
-  A4: 440.0,
-  B4: 493.88,
-  C5: 523.25,
-  D5: 587.33,
-  E5: 659.25,
-  F5: 698.46,
-  G5: 783.99,
-  A5: 880.0,
-  B5: 987.77,
-  C6: 1046.5,
-  D6: 1174.66,
-  E6: 1318.51,
-  F6: 1396.91,
-  G6: 1567.98,
-  A6: 1760.0,
-  B6: 1975.53,
+import { LEVEL_WORLD_THEMES } from './worldThemes.js';
+
+const A4_FREQUENCY = 440;
+const A4_MIDI = 69;
+const NOTE_BASE_OFFSETS = {
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
 };
+const ACCIDENTAL_OFFSETS = {
+  '#': 1,
+  B: -1,
+  '': 0,
+};
+const SEMITONE_NAME_GROUPS = [
+  ['C'],
+  ['C#', 'DB'],
+  ['D'],
+  ['D#', 'EB'],
+  ['E'],
+  ['F'],
+  ['F#', 'GB'],
+  ['G'],
+  ['G#', 'AB'],
+  ['A'],
+  ['A#', 'BB'],
+  ['B'],
+];
+const NOTE_FREQUENCIES = (() => {
+  const map = { REST: null };
+  const MIN_OCTAVE = 0;
+  const MAX_OCTAVE = 8;
+  for (let octave = MIN_OCTAVE; octave <= MAX_OCTAVE; octave += 1) {
+    SEMITONE_NAME_GROUPS.forEach((names, semitone) => {
+      const midi = (octave + 1) * 12 + semitone;
+      const frequency = Number((A4_FREQUENCY * Math.pow(2, (midi - A4_MIDI) / 12)).toFixed(2));
+      names.forEach((name) => {
+        map[`${name}${octave}`.toUpperCase()] = frequency;
+      });
+    });
+  }
+  return map;
+})();
 
 const DEFAULT_BEAT_DURATION = 0.45;
 const LOOP_SCHEDULE_LEAD = 0.1;
@@ -37,6 +54,84 @@ const DEFAULT_ENVELOPE = {
   sustain: 0.6,
   release: 0.15,
 };
+
+const DEFAULT_WORLD_BEAT = 0.35;
+const WORLD_THEME_MELODY_ENVELOPE = { attack: 0.015, decay: 0.1, sustain: 0.7, release: 0.24 };
+const WORLD_THEME_COUNTER_ENVELOPE = { attack: 0.02, decay: 0.12, sustain: 0.6, release: 0.28 };
+const WORLD_THEME_BASS_ENVELOPE = { attack: 0.03, decay: 0.15, sustain: 0.75, release: 0.32 };
+
+const toNoteEvents = (sequence = []) =>
+  sequence
+    .filter((entry) => entry !== null && entry !== undefined)
+    .map((entry) => {
+      if (Array.isArray(entry)) {
+        const [note, length, extra] = entry;
+        if (extra && typeof extra === 'object') {
+          return { note, length, ...extra };
+        }
+        if (typeof extra === 'number') {
+          return { note, length, volume: extra };
+        }
+        return { note, length };
+      }
+      if (typeof entry === 'object' && entry.note) {
+        return entry;
+      }
+      return { note: entry, length: 0.5 };
+    });
+
+const createWorldThemeArrangement = (definition = {}) => {
+  const tracks = [];
+  const addTrack = (sequence, config) => {
+    if (!sequence?.length) return;
+    tracks.push({
+      waveform: config.waveform,
+      volume: config.volume,
+      envelope: config.envelope,
+      notes: toNoteEvents(sequence),
+    });
+  };
+
+  addTrack(definition.melody, {
+    waveform: definition.melodyWaveform ?? 'triangle',
+    volume: definition.melodyVolume ?? 0.88,
+    envelope: { ...WORLD_THEME_MELODY_ENVELOPE, ...(definition.melodyEnvelope ?? {}) },
+  });
+
+  addTrack(definition.counter ?? definition.harmony, {
+    waveform: definition.counterWaveform ?? definition.harmonyWaveform ?? 'square',
+    volume: definition.counterVolume ?? definition.harmonyVolume ?? 0.6,
+    envelope: {
+      ...WORLD_THEME_COUNTER_ENVELOPE,
+      ...(definition.counterEnvelope ?? definition.harmonyEnvelope ?? {}),
+    },
+  });
+
+  addTrack(definition.bass, {
+    waveform: definition.bassWaveform ?? 'sine',
+    volume: definition.bassVolume ?? 0.5,
+    envelope: { ...WORLD_THEME_BASS_ENVELOPE, ...(definition.bassEnvelope ?? {}) },
+  });
+
+  return {
+    beatDuration: definition.beatDuration ?? DEFAULT_WORLD_BEAT,
+    loopStrategy: 'sequential',
+    segments: [
+      {
+        tracks,
+      },
+    ],
+    metadata: { title: definition.title },
+  };
+};
+
+const LEVEL_BATTLE_THEME_CONFIGS = LEVEL_WORLD_THEMES.map((definition, index) => ({
+  key: `battle_level_${index + 1}`,
+  arrangement: createWorldThemeArrangement(definition),
+  title: definition.title,
+}));
+
+const LEVEL_BATTLE_THEME_KEYS = LEVEL_BATTLE_THEME_CONFIGS.map(({ key }) => key);
 
 const THEMES = {
   intro: {
@@ -515,6 +610,14 @@ const THEMES = {
   },
 };
 
+LEVEL_BATTLE_THEME_CONFIGS.forEach(({ key, arrangement }) => {
+  THEMES[key] = arrangement;
+});
+
+if (LEVEL_BATTLE_THEME_KEYS.length > 0) {
+  THEMES.battle = THEMES[LEVEL_BATTLE_THEME_KEYS[0]];
+}
+
 const SFX = {
   fire: {
     beatDuration: 0.12,
@@ -670,6 +773,15 @@ export class AudioManager {
     } else {
       this._playArrangement(arrangement, { loop: false, volume: totalVolume });
     }
+  }
+
+  getBattleThemeNameForLevel(levelIndex = 0) {
+    if (!LEVEL_BATTLE_THEME_KEYS.length) {
+      return 'battle';
+    }
+    const count = LEVEL_BATTLE_THEME_KEYS.length;
+    const normalized = ((levelIndex % count) + count) % count;
+    return LEVEL_BATTLE_THEME_KEYS[normalized];
   }
 
   playSfx(name) {
@@ -934,11 +1046,56 @@ export class AudioManager {
   }
 
   _resolveFrequency(note) {
-    if (!note) return null;
-    if (typeof note === 'number') {
+    if (note === null || note === undefined) return null;
+    if (typeof note === 'number' && Number.isFinite(note)) {
       return note;
     }
-    const freq = NOTE_FREQUENCIES[note];
-    return freq ?? null;
+
+    const normalized = String(note)
+      .replace(/\s+/g, '')
+      .toUpperCase()
+      .replace(/[♯＃]/g, '#')
+      .replace(/[♭]/g, 'B');
+
+    if (!normalized || normalized === 'REST') {
+      return null;
+    }
+
+    const cached = NOTE_FREQUENCIES[normalized];
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const match = normalized.match(/^([A-G])([#B]?)(-?\d+)$/);
+    if (!match) {
+      return null;
+    }
+
+    const [, letter, accidentalSymbol = '', octaveString] = match;
+    let octave = Number.parseInt(octaveString, 10);
+    if (Number.isNaN(octave)) {
+      return null;
+    }
+
+    const base = NOTE_BASE_OFFSETS[letter];
+    if (base === undefined) {
+      return null;
+    }
+
+    const accidental = ACCIDENTAL_OFFSETS[accidentalSymbol] ?? 0;
+    let semitone = base + accidental;
+    while (semitone < 0) {
+      semitone += 12;
+      octave -= 1;
+    }
+    while (semitone >= 12) {
+      semitone -= 12;
+      octave += 1;
+    }
+
+    const midi = (octave + 1) * 12 + semitone;
+    const frequency = Number((A4_FREQUENCY * Math.pow(2, (midi - A4_MIDI) / 12)).toFixed(2));
+    NOTE_FREQUENCIES[normalized] = frequency;
+    return frequency;
   }
 }
