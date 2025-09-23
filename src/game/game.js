@@ -147,7 +147,8 @@ export class Game {
         drawables.push((ctx) => explosion.render(ctx));
       }
     }
-    this.renderer.composite(this.level, drawables);
+    const animationClock = (this.lastTime || 0) / 1000;
+    this.renderer.composite(this.level, drawables, animationClock);
   }
 
   updateMenu() {
