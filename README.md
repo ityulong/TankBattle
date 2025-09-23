@@ -60,6 +60,7 @@
 
 - 音效 / BGM 使用 Web Audio API 实时合成，避免版权问题。
 - 地图、敌人刷新节奏与强化机制基于 NES 原版规则进行实现，可在 `src/data` 与 `src/game/game.js` 中调整。
+- 坦克与地形贴图以内联 Base64 数据 URI 形式保存在 `src/assets/tankSprites.js` 与 `src/assets/tileTextures.js`，无需单独的二进制资源文件。
 - 若需进一步扩展（例如双人模式、关卡编辑器等），可在现有模块基础上增加新的状态与实体。
 
 欢迎体验并继续改进这个经典的像素坦克大战！
