@@ -66,12 +66,17 @@ export class Tank {
     }
   }
 
-  fire(createBullet) {
+  fire(createBullet, cooldownOverride) {
     if (this.cooldown > 0 || this.bullets.size >= this.maxBullets) return;
     const bullet = createBullet(this);
     if (bullet) {
       this.bullets.add(bullet);
-      this.cooldown = this.isPlayer ? 0.35 : 0.5;
+      this.cooldown =
+        cooldownOverride != null
+          ? cooldownOverride
+          : this.isPlayer
+            ? 0.35
+            : 0.5;
     }
   }
 
@@ -167,8 +172,8 @@ export class PlayerTank extends Tank {
 
   fire(createBullet) {
     this.maxBullets = this.level >= 2 ? 2 : 1;
-    this.cooldown = this.level >= 3 ? 0.15 : 0.2;
-    super.fire(createBullet);
+    const cooldown = this.level >= 3 ? 0.15 : 0.2;
+    super.fire(createBullet, cooldown);
   }
 
   upgrade() {
