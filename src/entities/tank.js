@@ -228,21 +228,44 @@ export class EnemyTank extends Tank {
       this.frozen -= dt;
       return;
     }
+    const stageNumber = Math.max(context.stage ?? 1, 1);
+    const difficultyFactor = Math.min(Math.max(context.difficulty ?? (stageNumber - 1) / 6, 0), 1);
     const { player } = context;
-    const changeDirChance = this.type === ENEMY_TYPES.FAST ? 0.02 : 0.01;
+    const baseChangeChance = this.type === ENEMY_TYPES.FAST ? 0.02 : 0.01;
+    const changeDirChance = baseChangeChance + difficultyFactor * 0.01;
     if (Math.random() < changeDirChance) {
       this.direction = randomChoice([DIRECTION.UP, DIRECTION.DOWN, DIRECTION.LEFT, DIRECTION.RIGHT]);
     }
     if (player && player.alive) {
       const alignHorizontally = Math.abs(player.x - this.x) < TILE_SIZE;
       const alignVertically = Math.abs(player.y - this.y) < TILE_SIZE;
-      if (alignHorizontally) {
-        this.direction = player.y < this.y ? DIRECTION.UP : DIRECTION.DOWN;
-      } else if (alignVertically) {
-        this.direction = player.x < this.x ? DIRECTION.LEFT : DIRECTION.RIGHT;
+      const manhattanDistance = Math.abs(player.x - this.x) + Math.abs(player.y - this.y);
+      const maxChaseDistance =
+        stageNumber <= 1 ? TILE_SIZE * 3 : TILE_SIZE * (4 + difficultyFactor * 4);
+      if (
+        stageNumber > 1 &&
+        (alignHorizontally || alignVertically) &&
+        manhattanDistance <= maxChaseDistance
+      ) {
+        const trackChance = Math.min(0.3 + difficultyFactor * 0.5, 0.85);
+        if (Math.random() < trackChance) {
+          if (alignHorizontally) {
+            this.direction = player.y < this.y ? DIRECTION.UP : DIRECTION.DOWN;
+          } else if (alignVertically) {
+            this.direction = player.x < this.x ? DIRECTION.LEFT : DIRECTION.RIGHT;
+          }
+        }
       }
       if (this.cooldown <= 0 && this.bullets.size < this.maxBullets) {
-        if (alignHorizontally || alignVertically || Math.random() < 0.02) {
+        const baseFireChance = 0.0015 + difficultyFactor * 0.015;
+        const typeFireBonus =
+          this.type === ENEMY_TYPES.POWER
+            ? 0.003
+            : this.type === ENEMY_TYPES.FAST
+              ? 0.001
+              : 0;
+        const fireChance = Math.min(baseFireChance + typeFireBonus, 0.045);
+        if (Math.random() < fireChance) {
           this.fire(context.createBullet);
         }
       }
