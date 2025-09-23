@@ -52,6 +52,15 @@ const POWER_TILE_STEEL = [
   TILE_TYPES.STEEL,
 ];
 
+const PLAYER_SPAWN_POSITION = Object.freeze({
+  x: FIELD_SIZE / 2 - TILE_SIZE,
+  y: FIELD_SIZE - TILE_SIZE * 4,
+});
+
+function getPlayerSpawnPosition() {
+  return { ...PLAYER_SPAWN_POSITION };
+}
+
 export class Game {
   constructor({ canvas, overlay, hud }) {
     this.canvas = canvas;
@@ -77,6 +86,8 @@ export class Game {
       [ENEMY_TYPES.POWER]: 0,
       [ENEMY_TYPES.ARMOR]: 0,
     };
+
+    this.stageCounter = 0;
 
     this.resetStageRuntime();
 
@@ -297,7 +308,8 @@ export class Game {
     this.stageScore = 0;
     this.lastCompletedStage = -1;
     this.hud.stage.textContent = formatStage(this.levelIndex + 1);
-    this.player = new PlayerTank({ x: FIELD_SIZE / 2 - TILE_SIZE, y: FIELD_SIZE - TILE_SIZE * 2 });
+    this.stageCounter = 0;
+    this.player = new PlayerTank(getPlayerSpawnPosition());
     this.player.lives = PLAYER_BASE_LIVES;
     this.hud.score.textContent = formatScore(this.score);
     this.baseDestroyed = false;
@@ -313,6 +325,7 @@ export class Game {
 
   prepareStage() {
     this.resetStageRuntime();
+    this.stageCounter += 1;
     this.overlay.onclick = null;
     this.level = deepClone(LEVELS[this.levelIndex % LEVELS.length]);
     this.spawnQueue = [...ENEMY_SPAWN_TABLE[this.levelIndex % ENEMY_SPAWN_TABLE.length]];
@@ -329,7 +342,7 @@ export class Game {
     };
     this.stageIntroTimer = 2.5;
     this.hud.stage.textContent = formatStage(this.levelIndex + 1);
-    this.player.reset({ x: FIELD_SIZE / 2 - TILE_SIZE, y: FIELD_SIZE - TILE_SIZE * 2 });
+    this.player.reset(getPlayerSpawnPosition());
     setTimeout(() => this.audio.playTheme('battle', { loop: true }), 2000);
   }
 
@@ -382,6 +395,8 @@ export class Game {
       createBullet: this.createBullet.bind(this),
       tanks: [this.player, ...this.enemies],
       self: enemy,
+      stage: Math.max(this.stageCounter, 1),
+      difficulty: Math.min(Math.max(this.stageCounter - 1, 0) / 6, 1),
     };
   }
 
@@ -493,7 +508,7 @@ export class Game {
   handlePlayerDeath() {
     if (this.player.lives > 0) {
       this.player.lives -= 1;
-      this.player.reset({ x: FIELD_SIZE / 2 - TILE_SIZE, y: FIELD_SIZE - TILE_SIZE * 2 });
+      this.player.reset(getPlayerSpawnPosition());
     } else {
       this.handleGameOver();
     }
