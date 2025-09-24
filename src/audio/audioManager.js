@@ -80,47 +80,97 @@ const toNoteEvents = (sequence = []) =>
       return { note: entry, length: 0.5 };
     });
 
+const mergeEnvelopes = (base, overrides = {}) => ({ ...base, ...overrides });
+
 const createWorldThemeArrangement = (definition = {}) => {
-  const tracks = [];
-  const addTrack = (sequence, config) => {
-    if (!sequence?.length) return;
-    tracks.push({
-      waveform: config.waveform,
-      volume: config.volume,
-      envelope: config.envelope,
-      notes: toNoteEvents(sequence),
+  const { segments: rawSegments, ...baseDefinition } = definition;
+  const segmentDefinitions = rawSegments?.length ? rawSegments : [baseDefinition];
+
+  const buildTracksForSegment = (segmentDefinition = {}) => {
+    const tracks = [];
+
+    const addTrack = (sequence, config) => {
+      if (!sequence?.length) return;
+      tracks.push({
+        waveform: config.waveform,
+        volume: config.volume,
+        envelope: config.envelope,
+        notes: toNoteEvents(sequence),
+      });
+    };
+
+    const melodySequence = segmentDefinition.melody ?? baseDefinition.melody;
+    addTrack(melodySequence, {
+      waveform: segmentDefinition.melodyWaveform ?? baseDefinition.melodyWaveform ?? 'triangle',
+      volume: segmentDefinition.melodyVolume ?? baseDefinition.melodyVolume ?? 0.88,
+      envelope: mergeEnvelopes(
+        mergeEnvelopes(WORLD_THEME_MELODY_ENVELOPE, baseDefinition.melodyEnvelope ?? {}),
+        segmentDefinition.melodyEnvelope ?? {},
+      ),
     });
+
+    const counterSequence =
+      segmentDefinition.counter ??
+      segmentDefinition.harmony ??
+      baseDefinition.counter ??
+      baseDefinition.harmony;
+
+    addTrack(counterSequence, {
+      waveform:
+        segmentDefinition.counterWaveform ??
+        segmentDefinition.harmonyWaveform ??
+        baseDefinition.counterWaveform ??
+        baseDefinition.harmonyWaveform ??
+        'square',
+      volume:
+        segmentDefinition.counterVolume ??
+        segmentDefinition.harmonyVolume ??
+        baseDefinition.counterVolume ??
+        baseDefinition.harmonyVolume ??
+        0.6,
+      envelope: mergeEnvelopes(
+        mergeEnvelopes(
+          WORLD_THEME_COUNTER_ENVELOPE,
+          baseDefinition.counterEnvelope ?? baseDefinition.harmonyEnvelope ?? {},
+        ),
+        segmentDefinition.counterEnvelope ?? segmentDefinition.harmonyEnvelope ?? {},
+      ),
+    });
+
+    const bassSequence = segmentDefinition.bass ?? baseDefinition.bass;
+    addTrack(bassSequence, {
+      waveform: segmentDefinition.bassWaveform ?? baseDefinition.bassWaveform ?? 'sine',
+      volume: segmentDefinition.bassVolume ?? baseDefinition.bassVolume ?? 0.5,
+      envelope: mergeEnvelopes(
+        mergeEnvelopes(WORLD_THEME_BASS_ENVELOPE, baseDefinition.bassEnvelope ?? {}),
+        segmentDefinition.bassEnvelope ?? {},
+      ),
+    });
+
+    return tracks;
   };
 
-  addTrack(definition.melody, {
-    waveform: definition.melodyWaveform ?? 'triangle',
-    volume: definition.melodyVolume ?? 0.88,
-    envelope: { ...WORLD_THEME_MELODY_ENVELOPE, ...(definition.melodyEnvelope ?? {}) },
-  });
+  const segments = segmentDefinitions
+    .map((segmentDefinition) => {
+      const tracks = buildTracksForSegment(segmentDefinition);
+      if (!tracks.length) {
+        return null;
+      }
+      return { tracks };
+    })
+    .filter(Boolean);
 
-  addTrack(definition.counter ?? definition.harmony, {
-    waveform: definition.counterWaveform ?? definition.harmonyWaveform ?? 'square',
-    volume: definition.counterVolume ?? definition.harmonyVolume ?? 0.6,
-    envelope: {
-      ...WORLD_THEME_COUNTER_ENVELOPE,
-      ...(definition.counterEnvelope ?? definition.harmonyEnvelope ?? {}),
-    },
-  });
-
-  addTrack(definition.bass, {
-    waveform: definition.bassWaveform ?? 'sine',
-    volume: definition.bassVolume ?? 0.5,
-    envelope: { ...WORLD_THEME_BASS_ENVELOPE, ...(definition.bassEnvelope ?? {}) },
-  });
+  if (!segments.length) {
+    const fallbackTracks = buildTracksForSegment({});
+    if (fallbackTracks.length) {
+      segments.push({ tracks: fallbackTracks });
+    }
+  }
 
   return {
     beatDuration: definition.beatDuration ?? DEFAULT_WORLD_BEAT,
     loopStrategy: 'sequential',
-    segments: [
-      {
-        tracks,
-      },
-    ],
+    segments,
     metadata: { title: definition.title },
   };
 };
