@@ -110,6 +110,15 @@ canvas {
   font-size: 18px;
   letter-spacing: 1px;
   text-transform: uppercase;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .overlay .title {

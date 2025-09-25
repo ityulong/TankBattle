@@ -780,21 +780,40 @@ export class AudioManager {
     this.context = null;
     this.currentLoop = null;
     this.masterGain = null;
+    this.pendingActions = [];
+    this._unlockPromise = null;
+    this.initializing = null;
   }
 
   async init() {
     if (this.context) return;
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.context = ctx;
-    this.masterGain = ctx.createGain();
-    this.masterGain.gain.value = this.volume;
-    this.masterGain.connect(ctx.destination);
+    if (this.initializing) return this.initializing;
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) return;
+    this.initializing = (async () => {
+      const ctx = new AudioContextCtor();
+      this.context = ctx;
+      this.masterGain = ctx.createGain();
+      this.masterGain.gain.value = this.volume;
+      this.masterGain.connect(ctx.destination);
+      if (ctx.state === 'suspended') {
+        this._prepareUnlock();
+      } else {
+        this._flushPendingActions();
+      }
+    })();
+    try {
+      await this.initializing;
+    } finally {
+      this.initializing = null;
+    }
   }
 
   setEnabled(value) {
     this.enabled = value;
     if (!value) {
       this.stopLoop();
+      this._clearPendingActions();
     }
   }
 
@@ -810,19 +829,24 @@ export class AudioManager {
       this.currentLoop.stop();
       this.currentLoop = null;
     }
+    this._clearPendingActions('theme');
   }
 
   playTheme(name, { loop = false, volume = 1 } = {}) {
     if (!this.enabled) return;
     const arrangement = THEMES[name];
-    if (!arrangement) return;
-    this.stopLoop();
+    if (!arrangement || !this.context) return;
     const totalVolume = volume * (arrangement.volume ?? 1);
-    if (loop) {
-      this.currentLoop = this._playArrangement(arrangement, { loop: true, volume: totalVolume });
-    } else {
-      this._playArrangement(arrangement, { loop: false, volume: totalVolume });
-    }
+    const startTheme = () => {
+      this.stopLoop();
+      if (!this.enabled) return;
+      if (loop) {
+        this.currentLoop = this._playArrangement(arrangement, { loop: true, volume: totalVolume });
+      } else {
+        this._playArrangement(arrangement, { loop: false, volume: totalVolume });
+      }
+    };
+    this._runWhenReady(startTheme, { type: 'theme', replace: true });
   }
 
   getBattleThemeNameForLevel(levelIndex = 0) {
@@ -835,11 +859,15 @@ export class AudioManager {
   }
 
   playSfx(name) {
-    if (!this.enabled) return;
+    if (!this.enabled || !this.context) return;
     const arrangement = SFX[name];
     if (!arrangement) return;
     const totalVolume = 0.7 * (arrangement.volume ?? 1);
-    this._playArrangement(arrangement, { loop: false, volume: totalVolume });
+    const playEffect = () => {
+      if (!this.enabled) return;
+      this._playArrangement(arrangement, { loop: false, volume: totalVolume });
+    };
+    this._runWhenReady(playEffect, { type: 'sfx' });
   }
 
   _playArrangement(arrangement, { loop = false, volume = 1 } = {}) {
@@ -1147,5 +1175,70 @@ export class AudioManager {
     const frequency = Number((A4_FREQUENCY * Math.pow(2, (midi - A4_MIDI) / 12)).toFixed(2));
     NOTE_FREQUENCIES[normalized] = frequency;
     return frequency;
+  }
+
+  _runWhenReady(action, { type = null, replace = false } = {}) {
+    if (!this.context) return;
+    if (this.context.state === 'running') {
+      action();
+      return;
+    }
+    if (replace && type) {
+      this.pendingActions = this.pendingActions.filter((fn) => fn._type !== type);
+    }
+    action._type = type;
+    this.pendingActions.push(action);
+    this._prepareUnlock();
+  }
+
+  _clearPendingActions(type = null) {
+    if (!type) {
+      this.pendingActions.length = 0;
+    } else {
+      this.pendingActions = this.pendingActions.filter((fn) => fn._type !== type);
+    }
+  }
+
+  _flushPendingActions() {
+    if (!this.context || this.context.state !== 'running') return;
+    if (!this.pendingActions.length) return;
+    const actions = this.pendingActions.slice();
+    this.pendingActions.length = 0;
+    for (const action of actions) {
+      action();
+    }
+  }
+
+  _prepareUnlock() {
+    if (!this.context) return;
+    if (this.context.state === 'running') {
+      this._flushPendingActions();
+      return;
+    }
+    if (this._unlockPromise) return this._unlockPromise;
+    this._unlockPromise = new Promise((resolve) => {
+      const cleanup = () => {
+        window.removeEventListener('pointerdown', handleUnlock, true);
+        window.removeEventListener('keydown', handleUnlock, true);
+        this._unlockPromise = null;
+      };
+      const handleUnlock = () => {
+        if (!this.context) {
+          cleanup();
+          resolve();
+          return;
+        }
+        this.context.resume().catch(() => {}).finally(() => {
+          cleanup();
+          if (this.context?.state === 'running') {
+            this._flushPendingActions();
+          }
+          resolve();
+        });
+      };
+      window.addEventListener('pointerdown', handleUnlock, { once: true, capture: true });
+      window.addEventListener('keydown', handleUnlock, { once: true, capture: true });
+    });
+    return this._unlockPromise;
   }
 }
