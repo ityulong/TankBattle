@@ -113,6 +113,7 @@ canvas {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease;
+  overflow-y: auto;
 }
 
 .overlay.active {
@@ -138,6 +139,71 @@ canvas {
 .overlay .menu-option:hover,
 .overlay .menu-option.active {
   background: rgba(255, 179, 71, 0.2);
+}
+
+.overlay .powerup-guide,
+.overlay .powerup-guide * {
+  text-transform: none;
+}
+
+.overlay .powerup-guide {
+  width: 100%;
+  max-width: 360px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.overlay .powerup-guide-title {
+  font-size: 16px;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+}
+
+.overlay .powerup-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overlay .powerup-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.overlay .powerup-icon {
+  font-size: 28px;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+
+.overlay .powerup-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overlay .powerup-name {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.overlay .powerup-desc {
+  font-size: 12px;
+  color: #cdd2d7;
 }
 
 .controls {
