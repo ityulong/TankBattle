@@ -20,6 +20,7 @@ import { Bullet } from '../entities/bullet.js';
 import { PowerUp } from '../entities/powerUp.js';
 import { Explosion } from '../entities/explosion.js';
 import { formatScore, formatStage, deepClone, randomChoice } from '../core/utils.js';
+import { getPowerUpIconDataURL, preloadPowerUpIcons } from '../core/powerUpIcons.js';
 
 const SPAWN_POSITIONS = [
   { x: TILE_SIZE, y: TILE_SIZE },
@@ -52,6 +53,47 @@ const POWER_TILE_STEEL = [
   TILE_TYPES.STEEL,
 ];
 
+const POWER_UP_DETAILS = [
+  {
+    type: POWER_UP_TYPES.HELMET,
+    name: '头盔',
+    description: '获得10秒护盾，抵挡所有攻击。',
+  },
+  {
+    type: POWER_UP_TYPES.TIMER,
+    name: '沙漏',
+    description: '冻结所有敌军行动 5 秒。',
+  },
+  {
+    type: POWER_UP_TYPES.SHOVEL,
+    name: '铁锹',
+    description: '15 秒内将基地砖墙升级为钢墙。',
+  },
+  {
+    type: POWER_UP_TYPES.STAR,
+    name: '星星',
+    description: '提升玩家坦克等级，增强火力。',
+  },
+  {
+    type: POWER_UP_TYPES.GRENADE,
+    name: '手雷',
+    description: '立即摧毁场上的全部敌军。',
+  },
+  {
+    type: POWER_UP_TYPES.TANK,
+    name: '坦克',
+    description: '获得 1 条额外生命。',
+  },
+  {
+    type: POWER_UP_TYPES.GUN,
+    name: '双枪',
+    description: '直接获得最高等级火力。',
+  },
+].map((item) => ({
+  ...item,
+  icon: getPowerUpIconDataURL(item.type),
+}));
+
 export class Game {
   constructor({ canvas, overlay, hud }) {
     this.canvas = canvas;
@@ -65,6 +107,8 @@ export class Game {
     this.tileResolver = new TileResolver();
     this.audio = new AudioManager();
 
+    preloadPowerUpIcons();
+
     this.currentState = GAME_STATES.MENU;
     this.levelIndex = 0;
     this.hiScore = 0;
@@ -77,6 +121,8 @@ export class Game {
       [ENEMY_TYPES.POWER]: 0,
       [ENEMY_TYPES.ARMOR]: 0,
     };
+
+    this.menuHelpVisible = false;
 
     this.resetStageRuntime();
 
@@ -151,24 +197,59 @@ export class Game {
   }
 
   updateMenu() {
-    this.overlay.innerHTML = `
-      <div class="title">BATTLE CITY</div>
-      <div class="menu-option" data-action="start">1 PLAYER</div>
-      <div class="menu-option" data-action="toggle-audio">音效：${this.audio.enabled ? '开' : '关'}</div>
-    `;
+    this.overlay.innerHTML = this.menuHelpVisible ? this.renderMenuHelp() : this.renderMenuMain();
     this.overlay.classList.add('active');
     this.overlay.onclick = (event) => {
       const action = event.target.dataset?.action;
+      if (this.menuHelpVisible) {
+        if (action === 'close-help') {
+          this.menuHelpVisible = false;
+        }
+        return;
+      }
       if (action === 'start') {
         this.startNewGame();
       } else if (action === 'toggle-audio') {
         this.audio.setEnabled(!this.audio.enabled);
-        this.overlay.querySelector('[data-action="toggle-audio"]').textContent = `音效：${
-          this.audio.enabled ? '开' : '关'
-        }`;
+      } else if (action === 'open-help') {
+        this.menuHelpVisible = true;
       }
     };
-    this.input.once('fire', () => this.startNewGame());
+    if (!this.menuHelpVisible) {
+      this.input.once('fire', () => this.startNewGame());
+    }
+    this.input.once('help', () => {
+      this.menuHelpVisible = !this.menuHelpVisible;
+    });
+  }
+
+  renderMenuMain() {
+    return `
+      <div class="title">BATTLE CITY</div>
+      <div class="menu-option" data-action="start">1 PLAYER</div>
+      <div class="menu-option" data-action="toggle-audio">音效：${this.audio.enabled ? '开' : '关'}</div>
+      <div class="menu-option" data-action="open-help">道具介绍（H）</div>
+    `;
+  }
+
+  renderMenuHelp() {
+    const items = POWER_UP_DETAILS.map(
+      (item) => `
+        <div class="menu-help-item">
+          <div class="menu-help-icon" aria-hidden="true">
+            <img src="${item.icon}" alt="${item.name}道具图标" draggable="false" loading="lazy" />
+          </div>
+          <div class="menu-help-content">
+            <span class="menu-help-name">${item.name}</span>
+            <span class="menu-help-desc">${item.description}</span>
+          </div>
+        </div>`
+    ).join('');
+    return `
+      <div class="title">道具说明</div>
+      <div class="menu-help">${items}</div>
+      <div class="menu-option" data-action="close-help">返回（H）</div>
+    `;
   }
 
   updateStageIntro(dt) {
