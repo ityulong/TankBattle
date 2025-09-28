@@ -137,34 +137,19 @@ export class PlayerTank extends Tank {
 
   move(dt, context) {
     const input = context.input;
-    let movingDirection = null;
-    if (input.isPressed('up')) movingDirection = DIRECTION.UP;
-    else if (input.isPressed('down')) movingDirection = DIRECTION.DOWN;
-    else if (input.isPressed('left')) movingDirection = DIRECTION.LEFT;
-    else if (input.isPressed('right')) movingDirection = DIRECTION.RIGHT;
-
-    if (movingDirection) {
-      this.direction = movingDirection;
-    }
+    if (input.isPressed('up')) this.direction = DIRECTION.UP;
+    else if (input.isPressed('down')) this.direction = DIRECTION.DOWN;
+    else if (input.isPressed('left')) this.direction = DIRECTION.LEFT;
+    else if (input.isPressed('right')) this.direction = DIRECTION.RIGHT;
 
     const speedMultiplier = 1 + this.level * 0.15;
     const velocity = this.speed * speedMultiplier * dt;
     let nextX = this.x;
     let nextY = this.y;
-    switch (movingDirection) {
-      case DIRECTION.UP:
-        nextY -= velocity;
-        break;
-      case DIRECTION.DOWN:
-        nextY += velocity;
-        break;
-      case DIRECTION.LEFT:
-        nextX -= velocity;
-        break;
-      case DIRECTION.RIGHT:
-        nextX += velocity;
-        break;
-    }
+    if (input.isPressed('up')) nextY -= velocity;
+    if (input.isPressed('down')) nextY += velocity;
+    if (input.isPressed('left')) nextX -= velocity;
+    if (input.isPressed('right')) nextX += velocity;
 
     const canMove = canMoveTo(nextX, nextY, this.width, this.height, {
       ...context,
