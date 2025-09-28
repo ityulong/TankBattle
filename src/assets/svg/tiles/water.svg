@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <linearGradient id="waterGradient" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#4fc0ff" />
+      <stop offset="1" stop-color="#166bff" />
+    </linearGradient>
+  </defs>
+  <rect width="16" height="16" rx="2" fill="url(#waterGradient)" />
+  <g fill="none" stroke="#e8f7ff" stroke-width="1.2" opacity="0.75" stroke-linecap="round">
+    <path d="M2 6c1.2-1.2 2.4-1.2 3.6 0s2.4 1.2 3.6 0 2.4-1.2 3.6 0 2.4 1.2 3.6 0" />
+    <path d="M1 10c1.2 1.4 2.4 1.4 3.6 0s2.4-1.4 3.6 0 2.4 1.4 3.6 0 2.4-1.4 3.6 0" />
+  </g>
+</svg>

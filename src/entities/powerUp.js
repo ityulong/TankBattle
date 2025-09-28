@@ -28,13 +28,26 @@ export class PowerUp {
     }
   }
 
-  render(ctx) {
+  render(ctx, assets) {
     if (!this.alive) return;
-    ctx.fillStyle = COLORS[this.type] || '#fff';
-    ctx.fillRect(this.x, this.y, this.width, this.height);
-    ctx.fillStyle = '#222';
-    ctx.font = '12px monospace';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(this.type[0].toUpperCase(), this.x + 4, this.y + TILE_SIZE - 4);
+    const flicker = this.timer < 3 && Math.floor(this.timer * 8) % 2 === 0;
+    if (flicker) {
+      return;
+    }
+    const sprite = assets?.powerUps?.[this.type]?.image;
+    if (sprite) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 6;
+      ctx.drawImage(sprite, this.x, this.y, this.width, this.height);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = COLORS[this.type] || '#fff';
+      ctx.fillRect(this.x, this.y, this.width, this.height);
+      ctx.fillStyle = '#222';
+      ctx.font = '12px monospace';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(this.type[0].toUpperCase(), this.x + 4, this.y + TILE_SIZE - 4);
+    }
   }
 }

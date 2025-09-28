@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <radialGradient id="shieldGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9" />
+      <stop offset="0.5" stop-color="#8ff7ff" stop-opacity="0.6" />
+      <stop offset="1" stop-color="#24d1ff" stop-opacity="0.2" />
+    </radialGradient>
+  </defs>
+  <circle cx="16" cy="16" r="13" fill="url(#shieldGlow)" />
+  <circle cx="16" cy="16" r="12" fill="none" stroke="#e7feff" stroke-width="2" opacity="0.8" />
+</svg>

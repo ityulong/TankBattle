@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <linearGradient id="brickShadow" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f0773d" />
+      <stop offset="1" stop-color="#a53e1f" />
+    </linearGradient>
+  </defs>
+  <rect width="16" height="16" fill="url(#brickShadow)" rx="1" />
+  <g fill="#742413" opacity="0.55">
+    <rect x="0" y="5" width="16" height="1" />
+    <rect x="0" y="11" width="16" height="1" />
+    <rect x="0" y="2" width="16" height="1" />
+  </g>
+  <g fill="#e99b79" opacity="0.55">
+    <rect x="1" y="1" width="3.5" height="1" rx="0.5" />
+    <rect x="6" y="1" width="4" height="1" rx="0.5" />
+    <rect x="11.5" y="1" width="3" height="1" rx="0.5" />
+    <rect x="2" y="7" width="4" height="1" rx="0.5" />
+    <rect x="9.5" y="7" width="4" height="1" rx="0.5" />
+    <rect x="1" y="13" width="3.5" height="1" rx="0.5" />
+    <rect x="6" y="13" width="4" height="1" rx="0.5" />
+  </g>
+</svg>

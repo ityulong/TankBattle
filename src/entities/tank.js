@@ -137,27 +137,46 @@ export class PlayerTank extends Tank {
 
   move(dt, context) {
     const input = context.input;
-    if (input.isPressed('up')) this.direction = DIRECTION.UP;
-    else if (input.isPressed('down')) this.direction = DIRECTION.DOWN;
-    else if (input.isPressed('left')) this.direction = DIRECTION.LEFT;
-    else if (input.isPressed('right')) this.direction = DIRECTION.RIGHT;
+    const desiredDirection = resolveInputDirection(input);
+    if (desiredDirection != null) {
+      this.direction = desiredDirection;
+    }
 
     const speedMultiplier = 1 + this.level * 0.15;
     const velocity = this.speed * speedMultiplier * dt;
-    let nextX = this.x;
-    let nextY = this.y;
-    if (input.isPressed('up')) nextY -= velocity;
-    if (input.isPressed('down')) nextY += velocity;
-    if (input.isPressed('left')) nextX -= velocity;
-    if (input.isPressed('right')) nextX += velocity;
+    const hasMovementInput = desiredDirection != null && velocity > 0;
 
-    const canMove = canMoveTo(nextX, nextY, this.width, this.height, {
-      ...context,
-      self: this,
-    });
-    if (canMove) {
-      this.x = clamp(nextX, 0, context.bounds - this.width);
-      this.y = clamp(nextY, 0, context.bounds - this.height);
+    if (hasMovementInput) {
+      const collisionContext = {
+        ...context,
+        self: this,
+      };
+
+      if (this.direction === DIRECTION.UP || this.direction === DIRECTION.DOWN) {
+        const alignedX = alignAxisToGrid(this.x, context.bounds - this.width, velocity);
+        if (alignedX !== this.x) {
+          if (canMoveTo(alignedX, this.y, this.width, this.height, collisionContext)) {
+            this.x = clamp(alignedX, 0, context.bounds - this.width);
+          }
+        }
+
+        const targetY = this.direction === DIRECTION.UP ? this.y - velocity : this.y + velocity;
+        if (canMoveTo(this.x, targetY, this.width, this.height, collisionContext)) {
+          this.y = clamp(targetY, 0, context.bounds - this.height);
+        }
+      } else if (this.direction === DIRECTION.LEFT || this.direction === DIRECTION.RIGHT) {
+        const alignedY = alignAxisToGrid(this.y, context.bounds - this.height, velocity);
+        if (alignedY !== this.y) {
+          if (canMoveTo(this.x, alignedY, this.width, this.height, collisionContext)) {
+            this.y = clamp(alignedY, 0, context.bounds - this.height);
+          }
+        }
+
+        const targetX = this.direction === DIRECTION.LEFT ? this.x - velocity : this.x + velocity;
+        if (canMoveTo(targetX, this.y, this.width, this.height, collisionContext)) {
+          this.x = clamp(targetX, 0, context.bounds - this.width);
+        }
+      }
     }
 
     if (input.isPressed('fire')) {
@@ -184,6 +203,24 @@ export class PlayerTank extends Tank {
     this.invincibleTimer = 2;
     this.bullets.clear();
   }
+}
+
+function resolveInputDirection(input) {
+  if (input.isPressed('up')) return DIRECTION.UP;
+  if (input.isPressed('down')) return DIRECTION.DOWN;
+  if (input.isPressed('left')) return DIRECTION.LEFT;
+  if (input.isPressed('right')) return DIRECTION.RIGHT;
+  return null;
+}
+
+function alignAxisToGrid(value, maxCoordinate, step) {
+  if (step <= 0) return value;
+  const target = clamp(Math.round(value / TILE_SIZE) * TILE_SIZE, 0, maxCoordinate);
+  const delta = target - value;
+  if (Math.abs(delta) <= step) {
+    return target;
+  }
+  return value + Math.sign(delta) * step;
 }
 
 export class EnemyTank extends Tank {

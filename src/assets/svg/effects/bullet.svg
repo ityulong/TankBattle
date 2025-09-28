@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <linearGradient id="bulletGlow" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff7d6" />
+      <stop offset="0.5" stop-color="#ffcf58" />
+      <stop offset="1" stop-color="#ff8f1f" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="1" width="4" height="14" rx="2" fill="url(#bulletGlow)" />
+  <rect x="6.5" y="1.5" width="3" height="4" rx="1.4" fill="#ffffff" opacity="0.8" />
+</svg>

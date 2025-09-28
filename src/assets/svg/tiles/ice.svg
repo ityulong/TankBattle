@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <linearGradient id="iceGradient" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#e9f6ff" />
+      <stop offset="1" stop-color="#90c6ff" />
+    </linearGradient>
+  </defs>
+  <rect width="16" height="16" rx="2" fill="url(#iceGradient)" />
+  <g fill="#fff" opacity="0.7">
+    <path d="M2 8l3-6 3 6-3 6-3-6z" />
+    <path d="M8 2l2.2 4.4L14 8l-3.8 1.6L8 14l-2.2-4.4L2 8l3.8-1.6L8 2z" opacity="0.5" />
+  </g>
+</svg>

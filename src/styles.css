@@ -131,6 +131,59 @@ canvas {
   background: rgba(255, 179, 71, 0.2);
 }
 
+.overlay .menu-hint {
+  font-size: 12px;
+  color: #bbbbbb;
+  text-transform: none;
+}
+
+.overlay .help-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 360px;
+  text-align: left;
+  pointer-events: auto;
+  text-transform: none;
+}
+
+.overlay .help-item {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(12, 12, 12, 0.65);
+  border: 1px solid rgba(255, 179, 71, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
+}
+
+.overlay .help-item-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+}
+
+.overlay .help-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.overlay .help-item-title {
+  font-size: 16px;
+  color: var(--accent);
+}
+
+.overlay .help-item-description {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
 .controls {
   display: flex;
   justify-content: space-around;
