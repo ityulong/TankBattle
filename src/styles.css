@@ -141,6 +141,13 @@ canvas {
   background: rgba(255, 179, 71, 0.2);
 }
 
+.overlay .menu-hint {
+  margin-top: 18px;
+  font-size: 12px;
+  color: #cdd2d7;
+  letter-spacing: 0.5px;
+}
+
 .overlay .powerup-guide,
 .overlay .powerup-guide * {
   text-transform: none;
