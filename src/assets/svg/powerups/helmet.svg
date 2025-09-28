@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="helmetBody" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffe577" />
+      <stop offset="1" stop-color="#f5a623" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="10" width="20" height="12" rx="6" fill="url(#helmetBody)" />
+  <rect x="8" y="12" width="16" height="8" rx="4" fill="#fff3c0" opacity="0.8" />
+  <rect x="12" y="8" width="8" height="4" rx="2" fill="#fbe9a0" />
+  <rect x="10" y="18" width="12" height="4" rx="2" fill="#d9861e" />
+</svg>

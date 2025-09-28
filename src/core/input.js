@@ -7,6 +7,7 @@ const KEY_BINDINGS = {
   Enter: 'pause',
   KeyM: 'mute',
   KeyP: 'pause',
+  KeyH: 'help',
 };
 
 export class Input {

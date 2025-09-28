@@ -37,6 +37,62 @@ const POWER_UP_SEQUENCE = [
   POWER_UP_TYPES.GUN,
 ];
 
+const POWER_UP_DETAILS = [
+  {
+    type: POWER_UP_TYPES.HELMET,
+    name: '头盔',
+    description: '获得 10 秒护盾，短暂无敌。',
+  },
+  {
+    type: POWER_UP_TYPES.TIMER,
+    name: '计时器',
+    description: '冻结所有敌军 5 秒。',
+  },
+  {
+    type: POWER_UP_TYPES.SHOVEL,
+    name: '铁锹',
+    description: '将基地四周加固为钢墙，持续 15 秒。',
+  },
+  {
+    type: POWER_UP_TYPES.STAR,
+    name: '星星',
+    description: '升级武器，提升坦克火力。',
+  },
+  {
+    type: POWER_UP_TYPES.GRENADE,
+    name: '手雷',
+    description: '瞬间消灭场上的所有敌人。',
+  },
+  {
+    type: POWER_UP_TYPES.TANK,
+    name: '坦克',
+    description: '增加一条命。',
+  },
+  {
+    type: POWER_UP_TYPES.GUN,
+    name: '双枪',
+    description: '火力直升满级，可同时发射两发子弹。',
+  },
+];
+
+function buildPowerUpHelpHTML(assets) {
+  return POWER_UP_DETAILS.map(({ type, name, description }) => {
+    const iconSrc = assets?.powerUps?.[type]?.src;
+    const iconMarkup = iconSrc
+      ? `<img src="${iconSrc}" alt="${name}" class="help-item-icon" loading="lazy" />`
+      : '';
+    return `
+      <div class="help-item">
+        ${iconMarkup}
+        <div class="help-item-content">
+          <div class="help-item-title">${name}</div>
+          <div class="help-item-description">${description}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 const POWER_TILE_BRICK = [
   TILE_TYPES.BRICK,
   TILE_TYPES.BRICK,
@@ -77,6 +133,11 @@ export class Game {
       [ENEMY_TYPES.POWER]: 0,
       [ENEMY_TYPES.ARMOR]: 0,
     };
+
+    this.menuMode = 'main';
+    this.menuHelpPressed = false;
+    this.assets = null;
+    this.helpListHTML = buildPowerUpHelpHTML();
 
     this.resetStageRuntime();
 
@@ -141,7 +202,7 @@ export class Game {
         drawables.push((ctx) => bullet.render(ctx, this.renderer));
       }
       for (const powerUp of this.powerUps) {
-        drawables.push((ctx) => powerUp.render(ctx));
+        drawables.push((ctx) => powerUp.render(ctx, this.assets));
       }
       for (const explosion of this.explosions) {
         drawables.push((ctx) => explosion.render(ctx));
@@ -151,12 +212,37 @@ export class Game {
   }
 
   updateMenu() {
+    const helpPressed = this.input.isPressed('help');
+    if (helpPressed && !this.menuHelpPressed) {
+      this.menuMode = this.menuMode === 'help' ? 'main' : 'help';
+      this.menuHelpPressed = true;
+    } else if (!helpPressed && this.menuHelpPressed) {
+      this.menuHelpPressed = false;
+    }
+
+    this.overlay.classList.add('active');
+
+    if (this.menuMode === 'help') {
+      this.overlay.innerHTML = `
+        <div class="title">道具介绍</div>
+        <div class="help-list">${this.helpListHTML}</div>
+        <div class="menu-option" data-action="back">返回菜单</div>
+        <div class="menu-hint">按 H 返回主菜单</div>
+      `;
+      this.overlay.onclick = (event) => {
+        if (event.target.dataset?.action === 'back') {
+          this.menuMode = 'main';
+        }
+      };
+      return;
+    }
+
     this.overlay.innerHTML = `
       <div class="title">BATTLE CITY</div>
       <div class="menu-option" data-action="start">1 PLAYER</div>
       <div class="menu-option" data-action="toggle-audio">音效：${this.audio.enabled ? '开' : '关'}</div>
+      <div class="menu-hint">按 H 查看道具介绍</div>
     `;
-    this.overlay.classList.add('active');
     this.overlay.onclick = (event) => {
       const action = event.target.dataset?.action;
       if (action === 'start') {
@@ -169,6 +255,12 @@ export class Game {
       }
     };
     this.input.once('fire', () => this.startNewGame());
+  }
+
+  setAssets(assets) {
+    this.assets = assets;
+    this.renderer.setAssets(assets);
+    this.helpListHTML = buildPowerUpHelpHTML(assets);
   }
 
   updateStageIntro(dt) {
@@ -518,6 +610,8 @@ export class Game {
 
   setState(newState) {
     this.currentState = newState;
+    this.menuMode = 'main';
+    this.menuHelpPressed = false;
   }
 
   togglePause() {
