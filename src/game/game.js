@@ -388,7 +388,7 @@ export class Game {
     this.stageScore = 0;
     this.lastCompletedStage = -1;
     this.hud.stage.textContent = formatStage(this.levelIndex + 1);
-    this.player = new PlayerTank({ x: FIELD_SIZE / 2 - TILE_SIZE, y: FIELD_SIZE - TILE_SIZE * 2 });
+    this.player = new PlayerTank(PlayerTank.getDefaultSpawnPosition());
     this.player.lives = PLAYER_BASE_LIVES;
     this.hud.score.textContent = formatScore(this.score);
     this.baseDestroyed = false;
@@ -420,7 +420,7 @@ export class Game {
     };
     this.stageIntroTimer = 2.5;
     this.hud.stage.textContent = formatStage(this.levelIndex + 1);
-    this.player.reset({ x: FIELD_SIZE / 2 - TILE_SIZE, y: FIELD_SIZE - TILE_SIZE * 2 });
+    this.player.reset(PlayerTank.getDefaultSpawnPosition());
     setTimeout(() => this.audio.playTheme('battle', { loop: true }), 2000);
   }
 
@@ -584,7 +584,7 @@ export class Game {
   handlePlayerDeath() {
     if (this.player.lives > 0) {
       this.player.lives -= 1;
-      this.player.reset({ x: FIELD_SIZE / 2 - TILE_SIZE, y: FIELD_SIZE - TILE_SIZE * 2 });
+      this.player.reset(PlayerTank.getDefaultSpawnPosition());
     } else {
       this.handleGameOver();
     }

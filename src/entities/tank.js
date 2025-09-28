@@ -1,4 +1,4 @@
-import { TILE_SIZE, DIRECTION, ENEMY_TYPES } from '../core/config.js';
+import { TILE_SIZE, DIRECTION, ENEMY_TYPES, FIELD_SIZE } from '../core/config.js';
 import { clamp, coordToTile, isInsideField, randomChoice } from '../core/utils.js';
 
 export class Tank {
@@ -128,7 +128,14 @@ function rectOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
 }
 
 export class PlayerTank extends Tank {
-  constructor({ x, y }) {
+  static getDefaultSpawnPosition() {
+    return {
+      x: FIELD_SIZE / 2 - TILE_SIZE,
+      y: FIELD_SIZE - TILE_SIZE * 3,
+    };
+  }
+
+  constructor({ x, y } = PlayerTank.getDefaultSpawnPosition()) {
     super({ x, y, speed: 60, direction: DIRECTION.UP, isPlayer: true });
     this.level = 0;
     this.lives = 3;
@@ -186,17 +193,21 @@ export class PlayerTank extends Tank {
 
   fire(createBullet) {
     this.maxBullets = this.level >= 2 ? 2 : 1;
-    this.cooldown = this.level >= 3 ? 0.15 : 0.2;
+    const bulletsBefore = this.bullets.size;
     super.fire(createBullet);
+    if (this.bullets.size > bulletsBefore) {
+      this.cooldown = this.level >= 3 ? 0.15 : 0.2;
+    }
   }
 
   upgrade() {
     this.level = Math.min(3, this.level + 1);
   }
 
-  reset(position) {
-    this.x = position.x;
-    this.y = position.y;
+  reset(position = PlayerTank.getDefaultSpawnPosition()) {
+    const spawn = position ?? PlayerTank.getDefaultSpawnPosition();
+    this.x = spawn.x;
+    this.y = spawn.y;
     this.direction = DIRECTION.UP;
     this.cooldown = 0;
     this.alive = true;
