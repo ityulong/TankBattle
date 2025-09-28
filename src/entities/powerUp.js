@@ -1,4 +1,5 @@
 import { TILE_SIZE, POWER_UP_TYPES } from '../core/config.js';
+import { POWER_UP_ICON_MAP } from '../data/powerUps.js';
 
 const COLORS = {
   [POWER_UP_TYPES.HELMET]: '#ffe066',
@@ -30,11 +31,23 @@ export class PowerUp {
 
   render(ctx) {
     if (!this.alive) return;
+    ctx.save();
     ctx.fillStyle = COLORS[this.type] || '#fff';
     ctx.fillRect(this.x, this.y, this.width, this.height);
-    ctx.fillStyle = '#222';
-    ctx.font = '12px monospace';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(this.type[0].toUpperCase(), this.x + 4, this.y + TILE_SIZE - 4);
+
+    const icon = POWER_UP_ICON_MAP[this.type];
+    if (icon) {
+      ctx.font = `${Math.floor(TILE_SIZE * 0.9)}px "Noto Color Emoji", "Segoe UI Emoji", system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(icon, this.x + this.width / 2, this.y + this.height / 2 + 1);
+    } else {
+      ctx.fillStyle = '#222';
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(this.type[0].toUpperCase(), this.x + 4, this.y + TILE_SIZE - 4);
+    }
+    ctx.restore();
   }
 }

@@ -20,6 +20,7 @@ import { Bullet } from '../entities/bullet.js';
 import { PowerUp } from '../entities/powerUp.js';
 import { Explosion } from '../entities/explosion.js';
 import { formatScore, formatStage, deepClone, randomChoice } from '../core/utils.js';
+import { POWER_UP_DETAILS } from '../data/powerUps.js';
 
 const SPAWN_POSITIONS = [
   { x: TILE_SIZE, y: TILE_SIZE },
@@ -35,51 +36,6 @@ const POWER_UP_SEQUENCE = [
   POWER_UP_TYPES.TANK,
   POWER_UP_TYPES.SHOVEL,
   POWER_UP_TYPES.GUN,
-];
-
-const POWER_UP_DETAILS = [
-  {
-    type: POWER_UP_TYPES.HELMET,
-    name: '头盔',
-    description: '获得 10 秒护盾，免疫伤害。',
-    icon: '🪖',
-  },
-  {
-    type: POWER_UP_TYPES.TIMER,
-    name: '闹钟',
-    description: '冻结所有敌军 5 秒。',
-    icon: '⏱️',
-  },
-  {
-    type: POWER_UP_TYPES.SHOVEL,
-    name: '铲子',
-    description: '加固基地周围墙体 15 秒。',
-    icon: '⛏️',
-  },
-  {
-    type: POWER_UP_TYPES.STAR,
-    name: '星星',
-    description: '坦克升级 1 级（最多 3 级）。',
-    icon: '⭐',
-  },
-  {
-    type: POWER_UP_TYPES.GRENADE,
-    name: '手雷',
-    description: '立即摧毁场上全部敌军坦克。',
-    icon: '💣',
-  },
-  {
-    type: POWER_UP_TYPES.TANK,
-    name: '坦克',
-    description: '增加一条生命值。',
-    icon: '❤️',
-  },
-  {
-    type: POWER_UP_TYPES.GUN,
-    name: '加农炮',
-    description: '直接提升至满级火力。',
-    icon: '🔫',
-  },
 ];
 
 const POWER_TILE_BRICK = [
@@ -118,6 +74,8 @@ export class Game {
     this.renderer = new Renderer(canvas);
     this.tileResolver = new TileResolver();
     this.audio = new AudioManager();
+    this.menuShowingGuide = false;
+    this.menuOverlayNeedsUpdate = true;
 
     this.currentState = GAME_STATES.MENU;
     this.levelIndex = 0;
@@ -142,6 +100,7 @@ export class Game {
     this.setupOverlayInteractions();
     this.setupHudBindings();
     this.attachAudioControls();
+    this.setupMenuHelpShortcut();
   }
 
   async init() {
@@ -208,28 +167,25 @@ export class Game {
   }
 
   updateMenu() {
-    const powerUpList = POWER_UP_DETAILS.map(
-      ({ icon, name, description, type }) => `
-        <div class="powerup-card" data-power-up="${type}">
-          <div class="powerup-icon" aria-hidden="true">${icon}</div>
-          <div class="powerup-info">
-            <div class="powerup-name">${name}</div>
-            <div class="powerup-desc">${description}</div>
-          </div>
-        </div>
-      `,
-    ).join('');
+    if (!this.menuOverlayNeedsUpdate) {
+      return;
+    }
 
+    if (this.menuShowingGuide) {
+      this.renderPowerUpGuide();
+    } else {
+      this.renderMainMenu();
+    }
+
+    this.menuOverlayNeedsUpdate = false;
+  }
+
+  renderMainMenu() {
     this.overlay.innerHTML = `
       <div class="title">BATTLE CITY</div>
       <div class="menu-option" data-action="start">1 PLAYER</div>
       <div class="menu-option" data-action="toggle-audio">音效：${this.audio.enabled ? '开' : '关'}</div>
-      <div class="powerup-guide">
-        <div class="powerup-guide-title">掉落道具一览</div>
-        <div class="powerup-grid">
-          ${powerUpList}
-        </div>
-      </div>
+      <div class="menu-hint">按 [H] 查看道具介绍</div>
     `;
     this.overlay.classList.add('active');
     this.overlay.onclick = (event) => {
@@ -244,6 +200,56 @@ export class Game {
       }
     };
     this.input.once('fire', () => this.startNewGame());
+  }
+
+  renderPowerUpGuide() {
+    const powerUpList = POWER_UP_DETAILS.map(
+      ({ icon, name, description, type }) => `
+        <div class="powerup-card" data-power-up="${type}">
+          <div class="powerup-icon" aria-hidden="true">${icon}</div>
+          <div class="powerup-info">
+            <div class="powerup-name">${name}</div>
+            <div class="powerup-desc">${description}</div>
+          </div>
+        </div>
+      `,
+    ).join('');
+
+    this.overlay.innerHTML = `
+      <div class="title">POWER UPS</div>
+      <div class="powerup-guide">
+        <div class="powerup-guide-title">掉落道具一览</div>
+        <div class="powerup-grid">
+          ${powerUpList}
+        </div>
+      </div>
+      <div class="menu-hint">按 [H] 返回主菜单</div>
+    `;
+    this.overlay.classList.add('active');
+    this.overlay.onclick = null;
+    this.input.once('fire', () => {
+      if (this.currentState === GAME_STATES.MENU && !this.menuShowingGuide) {
+        this.startNewGame();
+      }
+    });
+  }
+
+  toggleMenuGuide() {
+    this.menuShowingGuide = !this.menuShowingGuide;
+    this.menuOverlayNeedsUpdate = true;
+  }
+
+  setupMenuHelpShortcut() {
+    const rebind = () => {
+      this.input.once('help', () => {
+        if (this.currentState === GAME_STATES.MENU) {
+          this.toggleMenuGuide();
+        }
+        rebind();
+      });
+    };
+
+    rebind();
   }
 
   updateStageIntro(dt) {
@@ -598,6 +604,10 @@ export class Game {
 
   setState(newState) {
     this.currentState = newState;
+    if (newState === GAME_STATES.MENU) {
+      this.menuShowingGuide = false;
+      this.menuOverlayNeedsUpdate = true;
+    }
   }
 
   togglePause() {
