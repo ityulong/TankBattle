@@ -466,6 +466,7 @@ export class Game {
     this.player.reset(PlayerTank.getDefaultSpawnPosition());
     this.cancelStageMusic();
     const trackId = STAGE_TRACKS[this.levelIndex % STAGE_TRACKS.length];
+    this.audio.preloadTheme(trackId);
     this.currentStageTrack = trackId;
     this.stageMusicTimer = setTimeout(() => {
       if (this.currentStageTrack === trackId) {

@@ -139,7 +139,8 @@ export class AudioManager {
     this.currentSource = null;
     this.loopState = null;
     this.musicBuffers = new Map();
-    this.musicLoadPromise = null;
+    this.trackPromises = new Map();
+    this.libraryPrefetchPromise = null;
   }
 
   async init() {
@@ -151,31 +152,59 @@ export class AudioManager {
       this.masterGain.connect(ctx.destination);
     }
 
-    if (!this.musicLoadPromise) {
-      this.musicLoadPromise = this._loadMusicLibrary();
+    if (!this.libraryPrefetchPromise) {
+      this.libraryPrefetchPromise = this._prefetchLibrary();
     }
-
-    await this.musicLoadPromise;
   }
 
-  async _loadMusicLibrary() {
-    if (!this.context) return;
-    const entries = Object.entries(MUSIC_LIBRARY);
-    await Promise.all(
-      entries.map(async ([id, config]) => {
-        try {
-          const response = await fetch(config.src);
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = await this.context.decodeAudioData(arrayBuffer);
-          this.musicBuffers.set(id, buffer);
-        } catch (error) {
-          console.error(`[AudioManager] Failed to load music "${id}":`, error);
+  async _loadTrack(id) {
+    if (!this.context) return null;
+    if (this.musicBuffers.has(id)) {
+      return this.musicBuffers.get(id);
+    }
+    if (this.trackPromises.has(id)) {
+      return this.trackPromises.get(id);
+    }
+
+    const config = MUSIC_LIBRARY[id];
+    if (!config) {
+      console.warn(`[AudioManager] Unknown music id "${id}".`);
+      return null;
+    }
+
+    const loadPromise = (async () => {
+      try {
+        const response = await fetch(config.src);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
         }
-      }),
-    );
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = await this.context.decodeAudioData(arrayBuffer);
+        this.musicBuffers.set(id, buffer);
+        return buffer;
+      } catch (error) {
+        console.error(`[AudioManager] Failed to load music "${id}":`, error);
+        throw error;
+      } finally {
+        this.trackPromises.delete(id);
+      }
+    })();
+
+    this.trackPromises.set(id, loadPromise);
+    return loadPromise;
+  }
+
+  async _prefetchLibrary() {
+    if (!this.context) return;
+    const ids = Object.keys(MUSIC_LIBRARY);
+    await Promise.all(ids.map((id) => this._loadTrack(id).catch(() => null)));
+  }
+
+  preloadTheme(name) {
+    if (!this.context) return;
+    if (!MUSIC_LIBRARY[name]) return;
+    if (this.musicBuffers.has(name) || this.trackPromises.has(name)) return;
+    this._loadTrack(name).catch(() => null);
   }
 
   setEnabled(value) {
@@ -231,17 +260,16 @@ export class AudioManager {
       const buffer = this.musicBuffers.get(name);
       if (buffer) {
         playBuffer(buffer);
-      } else if (this.musicLoadPromise) {
-        this.musicLoadPromise
-          .then(() => {
-            const readyBuffer = this.musicBuffers.get(name);
-            playBuffer(readyBuffer);
+      } else {
+        this._loadTrack(name)
+          .then((readyBuffer) => {
+            if (readyBuffer) {
+              playBuffer(readyBuffer);
+            }
           })
           .catch(() => {
-            console.error(`[AudioManager] Failed to start music "${name}" after loading.`);
+            // 错误已经在 _loadTrack 内部记录。
           });
-      } else {
-        console.warn(`[AudioManager] Music buffer for "${name}" is not loaded.`);
       }
       return;
     }
