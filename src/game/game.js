@@ -93,6 +93,44 @@ function buildPowerUpHelpHTML(assets) {
   }).join('');
 }
 
+const STAGE_TRACKS = [
+  'ode_to_joy',
+  'fur_elise',
+  'canon_in_d',
+  'turkish_march',
+  'greensleeves',
+  'swan_lake',
+  'blue_danube',
+  'gymnopedie',
+  'entertainer',
+  'clair_de_lune',
+  'air_on_g',
+  'jesu_joy',
+  'spring_vivaldi',
+  'morning_mood',
+  'hungarian_dance',
+  'william_tell',
+  'bolero',
+  'sugar_plum',
+  'waltz_flowers',
+  'radetzky_march',
+  'moonlight_sonata',
+  'ave_maria',
+  'nessun_dorma',
+  'habanera',
+  'toreador_march',
+  'la_cucaracha',
+  'scarborough_fair',
+  'sakura',
+  'auld_lang_syne',
+  'silent_night',
+  'amazing_grace',
+  'frere_jacques',
+  'twinkle_twinkle',
+  'happy_birthday',
+  'pomp_and_circumstance',
+];
+
 const POWER_TILE_BRICK = [
   TILE_TYPES.BRICK,
   TILE_TYPES.BRICK,
@@ -147,6 +185,9 @@ export class Game {
     this.setupOverlayInteractions();
     this.setupHudBindings();
     this.attachAudioControls();
+
+    this.stageMusicTimer = null;
+    this.currentStageTrack = null;
   }
 
   async init() {
@@ -381,6 +422,7 @@ export class Game {
   }
 
   startNewGame() {
+    this.cancelStageMusic();
     this.audio.stopLoop();
     this.audio.playTheme('stage', { loop: false });
     this.levelIndex = 0;
@@ -397,6 +439,7 @@ export class Game {
   }
 
   startStage() {
+    this.cancelStageMusic();
     this.overlay.classList.remove('active');
     this.setState(GAME_STATES.STAGE_INTRO);
     this.prepareStage();
@@ -421,7 +464,15 @@ export class Game {
     this.stageIntroTimer = 2.5;
     this.hud.stage.textContent = formatStage(this.levelIndex + 1);
     this.player.reset(PlayerTank.getDefaultSpawnPosition());
-    setTimeout(() => this.audio.playTheme('battle', { loop: true }), 2000);
+    this.cancelStageMusic();
+    const trackId = STAGE_TRACKS[this.levelIndex % STAGE_TRACKS.length];
+    this.audio.preloadTheme(trackId);
+    this.currentStageTrack = trackId;
+    this.stageMusicTimer = setTimeout(() => {
+      if (this.currentStageTrack === trackId) {
+        this.audio.playTheme(trackId, { loop: true });
+      }
+    }, 2000);
   }
 
   resetStageRuntime() {
@@ -435,6 +486,14 @@ export class Game {
     this.shovelTimer = 0;
     this.baseDestroyed = false;
     this.time = 0;
+  }
+
+  cancelStageMusic() {
+    if (this.stageMusicTimer !== null) {
+      clearTimeout(this.stageMusicTimer);
+      this.stageMusicTimer = null;
+    }
+    this.currentStageTrack = null;
   }
 
   spawnNextEnemy() {
@@ -597,6 +656,7 @@ export class Game {
   handleGameOver() {
     this.setState(GAME_STATES.GAME_OVER);
     this.gameOverTimer = 5;
+    this.cancelStageMusic();
     this.audio.stopLoop();
     this.audio.playTheme('gameover', { loop: false });
   }
@@ -605,6 +665,8 @@ export class Game {
     this.lastCompletedStage = this.levelIndex;
     this.levelIndex = (this.levelIndex + 1) % LEVELS.length;
     this.setState(GAME_STATES.SCORE);
+    this.cancelStageMusic();
+    this.audio.stopLoop();
     this.audio.playTheme('stage', { loop: false });
   }
 
